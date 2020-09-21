@@ -394,6 +394,29 @@ Builder.load_string("""
 """)
 
 
+def plot(df, img, title=False):
+    """
+    Принимает df, обьект Image для размещения графика, title (bool)
+    Строит график по столбцам date (x), liters (y)
+    title - наличие названия графика.
+    :return: None
+    """
+    plt.figure(figsize=(10, 5), tight_layout=True)
+    ax = plt.subplot(111)
+    sns.set(style="darkgrid")
+    plt.plot(df['date'].values,
+             df['liters'].values)
+    x_ticks = df['date'].values
+    x_labels = list(df['date'].values)
+    if title:
+        ax.set_title('Статистика за всё время')
+    plt.xticks(x_ticks, rotation='90', labels=x_labels)
+    plt.savefig('.data\\partplot.png', optimize=True, quality=100)
+    img.reload()
+    img.source = ".data\\partplot.png"
+    img.opacity = 1
+
+
 def sort_df(df):
     """
     Принимает df, сортирует по столбцу 'date'
@@ -574,6 +597,46 @@ class AddnoteScreen(Screen):
         self.manager.current = 'report'
 
 
+class ReportScreen(Screen):
+
+    def enter_screen(self, user):
+        """
+        Добавление логина в верхний label.
+        Удаление графика
+        :return: None
+        """
+        self.ids.username_label.text = f"[b]Пользователь: {user}[/b]"
+        self.ids.info_label.text = ''
+        self.ids.plot.source = ""
+        self.ids.plot.opacity = 0
+
+    def give_report(self, user, info):
+        """
+        Вывод кол-ва проданного кофе за данный промежуток времени.
+        Построение графика.
+        :return: None
+        """
+        try:
+            self.dt_s = datetime.strptime(self.ids.start_date.text, "%d/%m/%y")
+            self.dt_e = datetime.strptime(self.ids.end_date.text, "%d/%m/%y")
+            print('СДЕЛАНО')
+        except ValueError:
+            self.ids.info_label.text = "Некорректно введена дата"
+            self.ids.info_label.text = (.87, .08, 0, 1)
+        else:
+            self.info_part = info.copy()
+            print(self.info_part)
+            print('ТУТ ОШИБКА')
+            self.info_part.date = self.info_part.date.apply(lambda x: datetime.strptime(x, "%d/%m/%y"))
+            self.info_part = self.info_part[
+                (self.info_part.user == user) & (self.info_part.date >= self.dt_s) & (self.info_part.date <= self.dt_e)]
+            self.summ = self.info_part['liters'].sum()
+            self.info_part.date = self.info_part.date.apply(lambda x: x.strftime("%d/%m/%y"))
+            self.ids.info_label.text = f"С {self.ids.start_date.text} по {self.ids.end_date.text} было поставлено {round(self.summ, 4)} кг хлеба"
+            plot(df=self.info_part, img=self.ids.plot)
+
+
+
 class FloatInput(TextInput):
     """
     Поле ввода с ограничением на ввод символов - только цифры и точка.
@@ -606,6 +669,7 @@ class DataInput(TextInput):
 sm = ScreenManager(transition=FadeTransition(duration=.4))
 sm.add_widget(LoginScreen(name='login'))
 sm.add_widget(AddnoteScreen(name='add'))
+sm.add_widget(ReportScreen(name='report'))
 
 
 class FreshBreadProgramm(App):
