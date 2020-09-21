@@ -585,7 +585,6 @@ class AddnoteScreen(Screen):
             self.ids.info_label.text = '[color=#DD1B07]Запись удалена[/color]'
             info.drop(self.index, inplace=True)
             info.index = range(0, info.count()[0])
-            print(info)
             info.index.name = 'index'
             info.to_csv('.data\\info.csv', sep=';')
 
@@ -619,14 +618,11 @@ class ReportScreen(Screen):
         try:
             self.dt_s = datetime.strptime(self.ids.start_date.text, "%d/%m/%y")
             self.dt_e = datetime.strptime(self.ids.end_date.text, "%d/%m/%y")
-            print('СДЕЛАНО')
         except ValueError:
             self.ids.info_label.text = "Некорректно введена дата"
             self.ids.info_label.text = (.87, .08, 0, 1)
         else:
             self.info_part = info.copy()
-            print(self.info_part)
-            print('ТУТ ОШИБКА')
             self.info_part.date = self.info_part.date.apply(lambda x: datetime.strptime(x, "%d/%m/%y"))
             self.info_part = self.info_part[
                 (self.info_part.user == user) & (self.info_part.date >= self.dt_s) & (self.info_part.date <= self.dt_e)]
@@ -635,6 +631,22 @@ class ReportScreen(Screen):
             self.ids.info_label.text = f"С {self.ids.start_date.text} по {self.ids.end_date.text} было поставлено {round(self.summ, 4)} кг хлеба"
             plot(df=self.info_part, img=self.ids.plot)
 
+    def clean(self, user, users, info):
+        """
+        Вставка шаблонов в поля ввода.
+        :return: None
+        """
+        self.ids.start_date.text = '01/01/20'
+        self.ids.end_date.text = '01/12/20'
+        self.ids.info_label.text = ""
+        self.ids.plot.source = ""
+        self.ids.plot.opacity = 0
+        self.index = users[users.user == user].index[0]
+        for i in info[info['user'] == user].index:
+            info.drop(i, inplace=True)
+        info.index = range(0, info.count()[0])
+        info.index.name = 'index'
+        info.to_csv('.data\\info.csv', sep=';')
 
 
 class FloatInput(TextInput):
